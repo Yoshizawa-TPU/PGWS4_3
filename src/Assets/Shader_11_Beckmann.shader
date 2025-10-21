@@ -15,9 +15,9 @@ Shader "Custom/Shader_11_Beckmann"
     {
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
 
-         Pass
+       Pass
         {
-        HLSLPROGRAM
+            HLSLPROGRAM
 
             #pragma vertex vert
             #pragma fragment frag
@@ -28,14 +28,14 @@ Shader "Custom/Shader_11_Beckmann"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                float3 normal : NORMAL;
+                float3 normal:NORMAL;
             };
 
             struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
-                float3 normal : NORMAL;
-                float3 position : TEXCOORDO;
+                float3 normal:NORMAL;
+                float3 position: TEXCOORD0;
             };
 
             TEXTURE2D(_BaseMap);
@@ -43,11 +43,6 @@ Shader "Custom/Shader_11_Beckmann"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
-                float4 _BaseMap_ST;
-                half _AmbientRate;
-                half _SpecularPower;
-                half _SpecularIntensity;
-                half _FresneIO;
                 half _Roughness;
             CBUFFER_END
 
@@ -55,29 +50,29 @@ Shader "Custom/Shader_11_Beckmann"
             {
                 Varyings OUT;
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.normal = TransformObjectToWorldNormal(IN.normal);
-                OUT.position = TransformObjectToWorld(IN.positionOS.xyz);
+                OUT.normal=TransformObjectToWorldNormal(IN.normal);
+                OUT.position=TransformObjectToWorld(IN.positionOS.xyz);
                 return OUT;
             }
-
+           
             half4 frag(Varyings IN) : SV_Target
             {
-                Light light = GetMainLight();              
-                half3 normal = normalize(IN.normal);
-                half3 view_direction = normalize(TransformObjectToWorld(float3(0,0,0))-IN.normal);
-                float3 half_vector = normalize(view_direction + light.direction);
+               Light light=GetMainLight();
+               half3 normal=normalize(IN.normal);
+               half3 view_direction=normalize(TransformViewToWorld(float3(0,0,0))-IN.position);
+               float3 half_vector=normalize(view_direction+light.direction);
+               half VdotN=max(0,dot(view_direction,normal));
+               half LdotN=max(0.00001,dot(light.direction,normal));
+               half HdotN=max(0,dot(half_vector,normal));
 
-                half VdotN = max(0,dot(view_direction,normal));
-                half LdotN = max(0.00001,dot(light.direction,normal));
-                half HdotN = max(0,dot(half_vector,normal));
+               half alpha2=_Roughness*_Roughness*_Roughness*_Roughness;
 
-                half alpha2 = _Roughness *_Roughness*_Roughness*_Roughness;
+               float D=exp(-(1-HdotN*HdotN)/(HdotN*HdotN*alpha2))/(4*alpha2*HdotN*HdotN*HdotN*HdotN);
+               
+               half3 color=D/(4*LdotN*VdotN);
+               color=saturate(color);
 
-                float D =  exp(-(1-HdotN*HdotN) / (HdotN*HdotN*alpha2)) / (4*alpha2* HdotN*HdotN*HdotN*HdotN);
-
-                half3 color = D / (4*LdotN*VdotN);
-                color = saturate(color);
-                return half4(color,1);
+               return half4 (color,1);
             }
             ENDHLSL
         }

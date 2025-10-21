@@ -14,7 +14,7 @@
    {
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
 
-        Pass
+       Pass
         {
             HLSLPROGRAM
 
@@ -79,7 +79,7 @@
 
             half Fresnel(half f0,half f90,float co)
             {
-                return f0+(f90-f0)*pow(1-co,5);//Schlick‹ßŽ—
+                return f0+(f90-f0)*pow(1-co,5);
             }
 
             half3 Fr_DisneyDiffuse(half3 albedo,half LdotN,half VdotN,half LdotH,half linearRoughness)
@@ -125,7 +125,7 @@
                 half3 specular=saturate(_SpecularColor*D*G*F/(4*LdotN*VdotN));
 
                 half3 color=light.color*LdotN*lerp(diffuse,specular,_Metallic);
-                color += _Emission;//”­s
+                color += _Emission;
 
                 return half4(color,1);
             }

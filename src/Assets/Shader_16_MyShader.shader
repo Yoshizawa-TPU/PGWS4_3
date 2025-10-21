@@ -14,7 +14,7 @@
    {
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
 
-        Pass
+       Pass
         {
             HLSLPROGRAM
 
@@ -82,29 +82,14 @@
                 return f0+(f90-f0)*pow(1-co,5);
             }
 
-            half3 OrenNayarDiffuse(half3 albedo, half3 normal, half3 lightDir, half3 viewDir, half roughness)
+            half3 Fr_DisneyDiffuse(half3 albedo,half LdotN,half VdotN,half LdotH,half linearRoughness)
             {
-            float sigma = roughness * 1.57;
-            float sigma2 = sigma * sigma;
-
-            float A = 1.0 - (0.5 * sigma2 / (sigma2 + 0.33));
-            float B = 0.45 * sigma2 / (sigma2 + 0.09);
-
-            float NdotL = max(0.0, dot(normal, lightDir));
-            float NdotV = max(0.0, dot(normal, viewDir));
-
-            float3 lightProj = normalize(lightDir - normal * NdotL);
-            float3 viewProj = normalize(viewDir - normal * NdotV);
-
-            float cosPhiDiff = max(0.0, dot(lightProj, viewProj));
-
-            float alpha = max(acos(NdotL), acos(NdotV));
-            float beta  = min(acos(NdotL), acos(NdotV));
-
-            float C = sin(alpha) * tan(beta);
-
-            float orenNayar = NdotL * (A + B * cosPhiDiff * C);
-            return albedo * orenNayar / PI;
+                half energyBias=lerp(0.0,0.5,linearRoughness);
+                half energyFactor=lerp(1.0,1.0/1.51,linearRoughness);
+                half Fd90=energyBias+2.0*LdotH*LdotH*linearRoughness;
+                half FL=Fresnel(1,Fd90,LdotN);
+                half FV=Fresnel(1,Fd90,VdotN);
+                return (albedo*FL*FV*energyFactor);
             }
 
             float V_SmithGGXCorrelated(float NdotL,float NdotV,float alphaG2)
@@ -130,17 +115,18 @@
                 half VdotH=max(0.0,dot(half_vector,view_direction));
 
                 half alpha=_Roughness*_Roughness;
-                half3 diffuse = OrenNayarDiffuse(_BaseColor, normal, light.direction, view_direction, _Roughness);
+                half3 diffuse=Fr_DisneyDiffuse(_BaseColor,LdotN,VdotN,LdotH,alpha)/PI;
 
-                half alpha2 = _Roughness * _Roughness;
-                float D = alpha2 / (PI * pow(HdotN * HdotN * (alpha2 - 1.0) + 1.0, 2.0));
-                half G = V_SmithGGXCorrelated(LdotN, VdotN, alpha2);
-                half F = Fresnel(_Fresnel0, 1, VdotH);
+                half alpha2=alpha*alpha;
+                float D=alpha2/(PI*pow(HdotN*HdotN*(alpha2-1.0)+1.0,2.0));
 
-                half3 specular = saturate(_SpecularColor * D * G * F / (4 * LdotN * VdotN));
-                half3 color = light.color * LdotN * (diffuse + specular * _Metallic);
- 
+                half G=V_SmithGGXCorrelated(LdotN,VdotN,alpha2);
+                half F=Fresnel(_Fresnel0,1,VdotH);
+                half3 specular=saturate(_SpecularColor*D*G*F/(4*LdotN*VdotN));
+
+                half3 color=light.color*LdotN*lerp(diffuse,specular,_Metallic);
                 color += _Emission;
+
                 return half4(color,1);
             }
             ENDHLSL
