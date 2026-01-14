@@ -8,6 +8,9 @@
         _Fresnel0("Fresnel0",Range(0,0.99999))=0.8
         _Roughness("Roughness",Range(0.0001,1))=0.4
         _Metallic("Metallic",Range(0,1))=0.6
+        _FresnelColor("Fresnel Color", Color) = (0.5, 0.8, 1.0, 1)
+        _FresnelPower("Fresnel Power", Range(0.5, 8.0)) = 3.0
+        _FresnelIntensity("Fresnel Intensity", Range(0.0, 3.0)) = 1.0
    }
 
    SubShader
